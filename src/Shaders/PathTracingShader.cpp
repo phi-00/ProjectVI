@@ -21,7 +21,7 @@
 namespace VI
 {
 constexpr float MAX_DEPTH = 5;
-constexpr int RUSSIAN_ROULETTE_DEPTH = 3;
+constexpr int RUSSIAN_ROULETTE_DEPTH = 2;
 
 RGB PathTracingShader::Execute(const Ray& ray, const Scene& scene) const
 {
@@ -77,25 +77,25 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
 
   const LambertianBRDF lambertian{};
   const MicrofacetBRDF microfacet{};
-  const float specular_probability = material.GetSpecularProbability();
-  const float diffuse_probability = 1.0f - specular_probability;
+  // the probability of selecting the specular (GGX) path is BRDF dependent
+  const float microfacet_probability = material.GetSpecularProbability();
 
-  const bool sample_specular = Random::RandomFloat(0.f, 1.f) < specular_probability;
-  const Vector wi_local = sample_specular ? microfacet.Sample(wo_local, material) : lambertian.Sample(wo_local, material);
+  // stochastically select whether to sample the direction according to specular (microfacet) or diffuse (lambertian)
+  const bool sample_microfacet = Random::RandomFloat(0.f, 1.f) < microfacet_probability;
+    
+  const Vector wi_local = sample_microfacet ?
+    microfacet.Sample(wo_local, material) :
+    lambertian.Sample(wo_local, material);
   if (wi_local.z <= 0.f)
   {
     return RGB{0.0f};
   }
 
-    RGB f;
-    if (!sample_specular) {
-        f = lambertian.Evaluate(wo_local, wi_local, material);
-    } else {
-        f = microfacet.Evaluate(wo_local, wi_local, material);
-    }
+  RGB const f = EvaluateBSDF(wo_local, wi_local, material);
+
   const float diffuse_pdf = lambertian.PDF(wo_local, wi_local, material);
-  const float specular_pdf = microfacet.PDF(wo_local, wi_local, material);
-  const float pdf = diffuse_pdf + specular_pdf;
+  const float microfacet_pdf = microfacet.PDF(wo_local, wi_local, material);
+  const float pdf = diffuse_pdf + microfacet_pdf;
   if (pdf <= 0.f)
   {
     return RGB{0.0f};
@@ -120,7 +120,7 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
   RGB incoming_radiance = m_BackgroundColor;
   if (scene.Trace(scattered_ray, scattered_intersection))
   {
-    const bool next_allow_emissive = sample_specular;
+    const bool next_allow_emissive = sample_microfacet;
     incoming_radiance = DoExecute(scattered_ray, scene, scattered_intersection, depth + 1, next_allow_emissive);
   }
 
