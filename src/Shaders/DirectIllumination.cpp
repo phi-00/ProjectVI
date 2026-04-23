@@ -79,15 +79,6 @@ std::optional<AreaLightSample> SampleMeshAreaLight(const Mesh& mesh)
   };
 }
 
-RGB EvaluateBSDF(const Vector& wo_local, const Vector& wi_local, const Material& material)
-{
-  const float specular_weight = material.GetSpecularProbability();
-  const float diffuse_weight = 1.0f - specular_weight;
-  const LambertianBRDF lambertian{};
-  const MicrofacetBRDF microfacet{};
-  return diffuse_weight * lambertian.Evaluate(wo_local, wi_local, material) + specular_weight * microfacet.Evaluate(wo_local, wi_local, material);
-}
-
 SelectedLight SelectUniformLight(const Scene& scene)
 {
   const auto& distribution = scene.GetLightSamplingDistribution();
@@ -128,6 +119,15 @@ SelectedLight SelectImportanceLight(const Scene& scene)
 }
 
 } // namespace
+
+RGB EvaluateBSDF(const Vector& wo_local, const Vector& wi_local, const Material& material)
+{
+  const float specular_weight = material.GetSpecularProbability();
+  const float diffuse_weight = 1.0f - specular_weight;
+  const LambertianBRDF lambertian{};
+  const MicrofacetBRDF microfacet{};
+  return diffuse_weight * lambertian.Evaluate(wo_local, wi_local, material) + specular_weight * microfacet.Evaluate(wo_local, wi_local, material);
+}
 
 RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Intersection& intersection, const Material& material, const Light* selected_light)
 {

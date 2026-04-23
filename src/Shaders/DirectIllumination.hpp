@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Math/RGB.hpp"
+#include "Math/Vector.hpp"
+
 
 namespace VI
 {
@@ -23,6 +25,8 @@ enum class DirectIlluminationMode
   Importance,
   All,
 };
+
+RGB EvaluateBSDF(const Vector& wo_local, const Vector& wi_local, const Material& material);
 
 RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Intersection& intersection, const Material& material, const Light* selected_light);
 
