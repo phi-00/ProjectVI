@@ -18,7 +18,7 @@ enum class VeachMode
 };
 
 // Change this constant to switch rendering mode
-constexpr VeachMode kVeachMode = VeachMode::NEEOnly;
+constexpr VeachMode kVeachMode = VeachMode::MIS;
 
 class VeachShader final
 {

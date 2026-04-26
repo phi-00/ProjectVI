@@ -832,30 +832,30 @@ Scene CreateVeachScene2()
   Scene scene;
 
   // ── Materials ──────────────────────────────────────────────────────────────
-  const int floor_mat = scene.AddMaterial({.Name = "Floor", .Albedo = {1.f, 0.2f, 0.2f}, .Roughness = .3f});
+  const int floor_mat = scene.AddMaterial({.Name = "Floor", .Albedo = {0.8f, 0.2f, 0.2f}, .Roughness = .3f});
 
   // Three reflective bands from sharp to broad reflections.
-  const int plate1_mat = scene.AddMaterial({.Name = "Plate Mirror-Like", .Albedo = {0.92f, 0.48f, 0.48f}, .Roughness = 0.04f, .Metallic = 1.f});
-  const int plate2_mat = scene.AddMaterial({.Name = "Plate Glossy", .Albedo = {0.48f, 0.92f, 0.48f}, .Roughness = 0.08f, .Metallic = 1.f});
-  const int plate3_mat = scene.AddMaterial({.Name = "Plate Broad Gloss", .Albedo = {0.48f, 0.48f, 0.92f}, .Roughness = 0.28f, .Metallic = 1.f});
-    const int plate4_mat = scene.AddMaterial({.Name = "Plate Broader Gloss", .Albedo = {0.6f, 0.6f, 0.6f}, .Roughness = 0.68f, .Metallic = 1.f});
+  const int plate1_mat = scene.AddMaterial({.Name = "Plate Mirror-Like", .Albedo = {0.92f, 0.48f, 0.48f}, .Roughness = 0.05f, .Metallic = 1.f});
+  const int plate2_mat = scene.AddMaterial({.Name = "Plate Glossy", .Albedo = {0.48f, 0.92f, 0.48f}, .Roughness = 0.2f, .Metallic = 1.f});
+  const int plate3_mat = scene.AddMaterial({.Name = "Plate Broad Gloss", .Albedo = {0.48f, 0.48f, 0.92f}, .Roughness = 0.35f, .Metallic = 1.f});
+    const int plate4_mat = scene.AddMaterial({.Name = "Plate Broader Gloss", .Albedo = {0.6f, 0.6f, 0.6f}, .Roughness = 0.5f, .Metallic = 1.f});
 
   // Three square lights with the same tiny/medium/large progression as the
   // reference image, kept roughly equal in total emitted flux.
   const int light1_mat = scene.AddMaterial({
       .Name = "Light Tiny",
       .EmissionColor = {1.f, 0.95f, 0.8f},
-      .EmissionPower = 42.f,
+      .EmissionPower = 150.f,
   });
   const int light2_mat = scene.AddMaterial({
       .Name = "Light Medium",
       .EmissionColor = {1.f, 0.95f, 0.8f},
-      .EmissionPower = 7.7f,
+      .EmissionPower = 30.f,
   });
   const int light3_mat = scene.AddMaterial({
       .Name = "Light Large",
       .EmissionColor = {1.f, 0.95f, 0.8f},
-      .EmissionPower = 1.7f,
+      .EmissionPower = 6.f,
   });
 
   // ── Floor (Y=0) ────────────────────────────────────────────────────────────
@@ -877,27 +877,34 @@ Scene CreateVeachScene2()
     const Vector normal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
     scene.AddPrimitive(Mesh{"Plate", {Triangle{p0, p1, p2, normal}, Triangle{p0, p2, p3, normal}}}, mat_idx);
   };
-  make_plate(0.f, .001f, +3.f, 10.f, .9f, 0.f, plate1_mat);
-  make_plate(0.f, .001f, +1.f, 10.f, .9f, 0.f, plate2_mat);
-  make_plate(0.f, .001f, -1.f, 10.f, .9f, 0.f, plate3_mat);
-  make_plate(0.f, .001f, -3.f, 10.f, .9f, 0.f, plate4_mat);
+  const float  half_width = 8.f;
+  const float  half_depth = 1.f;
+  // Roughness increases from plate1_mat to plate4_mat
+  //make_plate(0.f, .001f, +3.f, 10.f, .9f, 0.f, plate1_mat);
+  //make_plate(0.f, .001f, +1.f, 10.f, .9f, 0.f, plate2_mat);
+  //make_plate(0.f, .001f, -1.f, 10.f, .9f, 0.f, plate3_mat);
+    float const Zbase = 0.f;
+  make_plate(0.f, 4.f, Zbase+0.f, half_width, half_depth, 29.f, plate1_mat);
+  make_plate(0.f, 2.f, Zbase-2.f, half_width, half_depth, 14.f, plate2_mat);
+  make_plate(0.f, .001f, Zbase-5.f, half_width, half_depth, 0.f, plate3_mat);
 
   // ── Square area lights tilted toward the camera and the plates ────────────
   auto make_light = [&](float cx, float cy, float cz, float half, int mat_idx)
   {
     const Vector tangent_x{1.f, 0.f, 0.f};
-    const Vector tangent_y = glm::normalize(Vector{0.f, 0.62f, -0.78f});
+    //const Vector tangent_y = glm::normalize(Vector{0.f, 0.62f, -0.78f});
+      const Vector tangent_depth = glm::normalize(Vector{0.f, 0.f, -1.f});
     const Point center{cx, cy, cz};
-    const Point p0 = center - tangent_x * half - tangent_y * half;
-    const Point p1 = center + tangent_x * half - tangent_y * half;
-    const Point p2 = center + tangent_x * half + tangent_y * half;
-    const Point p3 = center - tangent_x * half + tangent_y * half;
+    const Point p0 = center - tangent_x * half - tangent_depth * half;
+    const Point p1 = center + tangent_x * half - tangent_depth * half;
+    const Point p2 = center + tangent_x * half + tangent_depth * half;
+    const Point p3 = center - tangent_x * half + tangent_depth * half;
     const Vector normal = glm::normalize(glm::cross(p2 - p0, p1 - p0));
     scene.AddPrimitive(Mesh{"Light", {Triangle{p0, p2, p1, normal}, Triangle{p0, p3, p2, normal}}}, mat_idx);
   };
-  make_light(-2.f, 5.f, 3.f, .25f, light1_mat);  // tiny square, left
-  make_light(+0.f, 5.f, 3.f, .50f, light2_mat); // medium square, center
-  make_light(+2.f, 5.f, 3.f, 1.0f, light3_mat); // large square, right
+  make_light(-5.f, 8.5f, 0.f, .05f, light1_mat);  // tiny square, left
+  make_light(+0.f, 8.5f, 0.f, .3f, light2_mat); // medium square, center
+  make_light(+5.f, 8.5f, 0.f, 1.0f, light3_mat); // large square, right
 
   return scene;
 }
