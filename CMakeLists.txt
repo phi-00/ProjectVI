@@ -6,11 +6,42 @@ project(VI-RT)
 
 add_subdirectory(external/glm)
 
-#find_library(OIDN_LIBRARY NAMES libOpenImageDenoise PATHS /Applications/oidn-2.4.1.arm64.macos/lib)
+include(FetchContent)
 
-set(OIDN_LIBRARY "/Applications/oidn-2.4.1.arm64.macos/lib/libOpenImageDenoise.2.4.1.dylib")
+set(OIDN_VERSION "2.4.1")
 
-message(${OIDN_LIBRARY})
+if(APPLE)
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+    set(OIDN_PACKAGE "oidn-${OIDN_VERSION}.arm64.macos")
+  else()
+    set(OIDN_PACKAGE "oidn-${OIDN_VERSION}.x86_64.macos")
+  endif()
+
+  set(OIDN_URL "https://github.com/RenderKit/oidn/releases/download/v${OIDN_VERSION}/${OIDN_PACKAGE}.tar.gz")
+
+elseif(WIN32)
+  set(OIDN_PACKAGE "oidn-${OIDN_VERSION}.x64.windows")
+  set(OIDN_URL "https://github.com/RenderKit/oidn/releases/download/v${OIDN_VERSION}/${OIDN_PACKAGE}.zip")
+
+elseif(UNIX)
+  set(OIDN_PACKAGE "oidn-${OIDN_VERSION}.x86_64.linux")
+  set(OIDN_URL "https://github.com/RenderKit/oidn/releases/download/v${OIDN_VERSION}/${OIDN_PACKAGE}.tar.gz")
+
+else()
+  message(FATAL_ERROR "Unsupported platform for automatic OIDN binary download")
+endif()
+
+FetchContent_Declare(
+  oidn_prebuilt
+  URL "${OIDN_URL}"
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+
+FetchContent_MakeAvailable(oidn_prebuilt)
+
+list(APPEND CMAKE_PREFIX_PATH "${oidn_prebuilt_SOURCE_DIR}")
+
+find_package(OpenImageDenoise REQUIRED CONFIG)
 
 add_executable(VI-RT src/main.cpp
     src/Log/Log.hpp
@@ -89,11 +120,10 @@ add_executable(VI-RT src/main.cpp
     src/Shaders/VeachShader.cpp
 )
 target_include_directories(VI-RT PRIVATE src)
-target_include_directories(VI-RT PRIVATE /Applications/oidn-2.4.1.arm64.macos/include/)
 target_precompile_headers(VI-RT PRIVATE src/vi_pch.h)
 
 target_link_libraries(VI-RT PRIVATE glm::glm)
-target_link_libraries(VI-RT PRIVATE ${OIDN_LIBRARY})
+target_link_libraries(VI-RT PRIVATE OpenImageDenoise)
 
 if (MSVC)
   target_compile_options(VI-RT PRIVATE /W4)
