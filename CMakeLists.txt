@@ -99,6 +99,12 @@ add_executable(VI-RT src/main.cpp
     # Lights
     src/Light/Light.hpp
 
+    # Medium
+    src/Medium/Medium.hpp
+    src/Medium/Medium.cpp
+    src/Medium/PhaseFunction.hpp
+    src/Medium/PhaseFunction.cpp
+
     # Math
     src/Math/Math.hpp
     src/Math/Math.cpp

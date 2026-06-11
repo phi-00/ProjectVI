@@ -184,7 +184,7 @@ RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Interse
     const RGB bsdf = EvaluateBSDF(wo_local, wi_local, material, intersection.TexCoord);
 
     // Lr = bsdf * radiance * cos (theta)
-    return (bsdf * wi_local.z * light_radiance);
+    return (bsdf * wi_local.z * light_radiance * scene.Transmittance(light_distance));
   }
 
   // --------- AREA LIGHT
@@ -260,7 +260,7 @@ RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Interse
     const RGB area_light_radiance = light_material.HasEmissionTexture() ? light_material.GetRadiance(area_sample->TexCoord) : light_radiance;
 
     // Lr = bsdf * L * G / pdf
-    return (bsdf * area_light_radiance * geometry_term) / area_sample->AreaPDF;
+    return (bsdf * area_light_radiance * geometry_term * scene.Transmittance(light_distance)) / area_sample->AreaPDF;
   }
 
   return RGB{0.f};

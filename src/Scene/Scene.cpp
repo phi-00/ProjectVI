@@ -174,6 +174,22 @@ const Camera* Scene::GetCamera() const
   return m_Camera.has_value() ? &m_Camera.value() : nullptr;
 }
 
+void Scene::SetGlobalMedium(ConstantDensityMedium medium)
+{
+  m_GlobalMedium = std::move(medium);
+}
+
+const ConstantDensityMedium* Scene::GetGlobalMedium() const
+{
+  return m_GlobalMedium.has_value() && m_GlobalMedium->IsEnabled() ? &m_GlobalMedium.value() : nullptr;
+}
+
+RGB Scene::Transmittance(float distance) const
+{
+  const ConstantDensityMedium* medium = GetGlobalMedium();
+  return medium != nullptr ? medium->Transmittance(distance) : RGB{1.0f};
+}
+
 const Primitive& Scene::GetPrimitive(int primitive_index) const
 {
   return m_Primitives[primitive_index];

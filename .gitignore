@@ -62,3 +62,6 @@ build
 .github/instructions/codacy.instructions.md
 
 *.ppm
+
+# Local development notes
+index1.txt

@@ -490,7 +490,13 @@ void ImportPrimitive(const tinygltf::Model& model, const tinygltf::Mesh& mesh, c
 
   const int material = primitive.material >= 0 && static_cast<size_t>(primitive.material) < material_map.size() ? material_map[primitive.material] : default_material;
   const std::string mesh_name = mesh.name.empty() ? "glTF Mesh" : mesh.name;
+  const int primitive_index = static_cast<int>(scene.GetPrimitiveCount());
   scene.AddPrimitive(Mesh{mesh_name, std::move(triangles)}, material);
+
+  if (scene.GetMaterial(material).GetEmissionPower() > 0.0f)
+  {
+    scene.AddLight(std::make_unique<AreaLight>(material, primitive_index));
+  }
 }
 
 void ImportNode(const tinygltf::Model& model, int node_index, const glm::mat4& parent_transform, const std::vector<int>& material_map, int default_material, int camera_width, int camera_height, Scene& scene)
