@@ -1,0 +1,268 @@
+Notas para o relatorio - Participating Media com densidade constante
+====================================================================
+
+1. Enquadramento
+----------------
+
+O objetivo desta parte do projeto foi estender o path tracer de forma a
+representar a propagacao da luz em meios participantes. Ao contrario de uma
+cena composta apenas por superficies, um meio participante permite que a luz
+seja absorvida e dispersa no espaco entre a camara, as superficies e as fontes
+de luz. Este fenomeno e essencial para simular efeitos como nevoeiro, fumo,
+poeira ou atmosfera iluminada.
+
+Neste trabalho foi considerado o caso de um meio homogeneo de densidade
+constante. Esta escolha permite introduzir os principais conceitos fisicos e
+computacionais dos meios participantes sem a complexidade adicional de volumes
+heterogeneos ou delimitados por geometrias arbitrarias.
+
+2. Modelo fisico usado
+----------------------
+
+Num meio participante, a radiancia transportada ao longo de um raio pode ser
+alterada por dois efeitos principais:
+
+- absorcao, que remove energia do raio;
+- dispersao, que redireciona energia luminosa para outras direcoes.
+
+No caso implementado, estes efeitos sao agregados numa densidade constante,
+usada como coeficiente de extincao. A transmissao ao longo de uma distancia
+`d` e dada por:
+
+`T(d) = exp(-density * d)`
+
+Esta expressao traduz a probabilidade de a luz atravessar o meio sem sofrer um
+evento de interacao. Quanto maior a densidade ou a distancia percorrida, menor
+sera a contribuicao luminosa que chega ao ponto observado.
+
+3. Amostragem da distancia de voo livre
+---------------------------------------
+
+Para decidir se um raio interage com o meio antes de atingir uma superficie,
+foi usada amostragem exponencial da distancia de voo livre. Para cada raio, o
+path tracer calcula primeiro a intersecao com a superficie mais proxima. Em
+seguida, amostra uma distancia no meio:
+
+`s = -log(1 - xi) / density`
+
+onde `xi` e um numero aleatorio uniforme no intervalo `[0,1)`. Se `s` for
+menor do que a distancia ate a superficie, o evento ocorre dentro do meio. Caso
+contrario, o raio chega a superficie e o algoritmo segue o processo normal de
+shading por BRDF.
+
+Esta abordagem e compativel com Monte Carlo path tracing, pois transforma a
+integracao volumetrica num processo estocastico: diferentes caminhos podem
+sofrer dispersao em diferentes pontos, e a imagem converge com o aumento do
+numero de amostras por pixel.
+
+4. Funcao de fase isotropica
+----------------------------
+
+Quando ocorre um evento de dispersao no meio, e necessario escolher uma nova
+direcao para continuar o caminho da luz. Foi implementada uma funcao de fase
+isotropica:
+
+`p(wi, wo) = 1 / (4*pi)`
+
+Esta funcao assume que a luz e dispersa com igual probabilidade em todas as
+direcoes. Apesar de ser um modelo simples, e adequado para demonstrar o
+funcionamento base de participating media e facilita a validacao visual do
+resultado.
+
+Uma extensao futura natural seria substituir este modelo pela funcao de
+Henyey-Greenstein, que permite controlar dispersao frontal ou retrodispersao
+atraves de um parametro de anisotropia.
+
+5. Integracao no path tracer
+----------------------------
+
+A implementacao foi integrada no `PathTracingShader`. O fluxo do algoritmo
+passou a ser:
+
+1. Tracar o raio ate a superficie mais proxima.
+2. Se existir meio participante, amostrar uma distancia de interacao no meio.
+3. Se a interacao ocorrer antes da superficie:
+   - calcular iluminacao direta no ponto volumetrico;
+   - amostrar uma nova direcao pela funcao de fase;
+   - continuar recursivamente o path tracing.
+4. Se nao ocorrer interacao volumetrica:
+   - executar o shading de superficie ja existente.
+
+Esta separacao evita misturar o conceito de meio participante com materiais de
+superficie. O meio pertence ao espaco da cena, nao a uma geometria especifica.
+
+6. Iluminacao direta no volume
+------------------------------
+
+Para que o efeito volumetrico seja visivel, nao basta redirecionar caminhos no
+meio. Tambem e necessario estimar a iluminacao direta nos pontos de dispersao.
+Por isso, foi adicionada uma rotina de iluminacao direta volumetrica.
+
+No caso de luzes de area, e amostrado um ponto na superficie emissiva. A
+contribuicao considera:
+
+- radiancia emitida pela fonte de luz;
+- funcao de fase isotropica;
+- termo geometrico associado a luz de area;
+- visibilidade entre o ponto volumetrico e a luz;
+- transmissao do meio ao longo do raio de sombra.
+
+Os raios de sombra foram tambem modificados para incluir atenuacao volumetrica.
+Assim, a luz que atravessa o nevoeiro perde intensidade de forma consistente
+com o modelo de densidade constante.
+
+Como a demonstracao usa a cena glTF fornecida pelo projeto, foi tambem
+necessario garantir que primitivas com material emissivo fossem registadas como
+luzes de area no importador glTF. Desta forma, a luz do teto da Cornell Box nao
+e apenas uma superficie visivelmente emissiva; ela tambem participa na
+amostragem direta usada pelo path tracer e pelos eventos de dispersao no meio.
+
+7. Parametros usados na demonstracao
+------------------------------------
+
+Para a demonstracao foi usada a Cornell Box ja incluida no projeto, no ficheiro:
+
+`scenes/cornell-box.gltf`
+
+O modo de demonstracao e ativado por:
+
+`--medium-demo`
+
+O parametro principal e:
+
+`--medium-density`
+
+Valores como `0.15` produzem um nevoeiro leve e ainda permitem ver claramente a
+geometria da Cornell Box carregada a partir do glTF. Valores maiores, como
+`0.45`, tornam o efeito mais evidente, aumentam a atenuacao da cena e tornam o
+volume mais visivel.
+
+Estes valores foram escolhidos em funcao da escala geometrica real da Cornell
+Box existente em `scenes/cornell-box.gltf`. Ao analisar o ficheiro glTF,
+verificou-se que a cena ocupa aproximadamente o intervalo `x = [-2, 2]`,
+`y = [0, 3]` e `z = [-1, 4]`, ou seja, uma profundidade de apenas cerca de cinco
+unidades. Por isso, valores muito pequenos como `0.0008`, `0.0012` ou `0.0032`
+quase nao produzem atenuacao visivel, porque `exp(-density * d)` permanece
+muito proximo de 1 para distancias desta escala. Assim, `0.15` foi usado como
+exemplo de nevoeiro ligeiro, preservando a leitura da geometria, e `0.45` foi
+usado como exemplo mais denso, adequado para mostrar de forma mais clara o
+aumento do efeito volumetrico. Valores ainda maiores, como `0.8`, tornam o meio
+muito denso e podem escurecer excessivamente a imagem.
+
+Na comparacao final, e importante manter a mesma cena glTF e alterar apenas a
+presenca ou a densidade do meio participante. Assim, as diferencas visuais
+podem ser atribuidas ao modelo volumetrico e nao a uma alteracao de geometria,
+camera ou materiais.
+
+8. Observacoes sobre os resultados
+----------------------------------
+
+As imagens com participating media apresentam mais ruido do que uma cena apenas
+com superficies. Isto acontece porque o algoritmo passa a amostrar tambem
+eventos no volume, alem de amostrar direcoes de reflexao nas superficies e
+pontos nas fontes de luz.
+
+Com poucas amostras por pixel, a imagem original (`image.ppm`) apresenta muitos
+pontos coloridos ou zonas ruidosas. A imagem filtrada por OIDN
+(`image-OIDN.ppm`) fica visualmente mais suave, embora possa perder algum
+detalhe em regioes com muito ruido.
+
+Foi tambem observado que, em imagens com poucas amostras por pixel, a filtragem
+por OIDN pode introduzir artefactos visuais em superficies planas, como uma
+aparencia ligeiramente ondulada no chao ou nas caixas. Isto acontece porque o
+OIDN e um pos-processamento de imagem: ele tenta reconstruir uma imagem limpa a
+partir de uma estimativa Monte Carlo ainda muito ruidosa. Em cenas com meios
+participantes, a variancia e maior devido aos eventos aleatorios de dispersao no
+volume, e o denoiser pode interpretar parte desse ruido como detalhe estrutural.
+Por isso, as imagens denoised sao uteis para visualizar melhor o efeito global
+do nevoeiro, mas nao substituem a imagem fisicamente estimada pelo path tracer.
+Para resultados finais, aumentar o numero de amostras por pixel reduz estes
+artefactos e torna a filtragem mais estavel.
+
+Para o relatorio, e recomendavel apresentar pelo menos tres comparacoes:
+
+- cena sem meio participante;
+- cena com densidade baixa;
+- cena com densidade mais alta.
+
+Tambem pode ser util mostrar a diferenca entre a imagem ruidosa e a imagem
+denoised, explicando que a presenca de meios participantes aumenta a variancia
+do estimador Monte Carlo.
+
+9. Pontos fortes da implementacao
+---------------------------------
+
+- A implementacao e modular: o meio foi colocado em `src/Medium`.
+- O rendering por defeito permanece inalterado.
+- A cena so ativa o meio quando tal e pedido explicitamente.
+- O modelo usa as formulas fundamentais de um meio homogeneo:
+  transmissao exponencial e amostragem da distancia de voo livre.
+- A iluminacao direta foi adaptada para pontos volumetricos.
+- Os raios de sombra tambem sofrem atenuacao no meio.
+
+10. Limitacoes e trabalho futuro
+--------------------------------
+
+A principal limitacao e que o meio atual e global e homogeneo. Isto significa
+que toda a cena esta preenchida pelo mesmo nevoeiro. Para efeitos mais
+controlados, seria interessante implementar volumes delimitados, por exemplo
+uma esfera ou uma caixa contendo fumo.
+
+Outra limitacao e a funcao de fase isotropica. Embora seja adequada para uma
+primeira implementacao, meios reais podem dispersar mais luz para a frente do
+que para tras. A funcao de Henyey-Greenstein permitiria representar esse
+comportamento.
+
+Por fim, seria importante produzir renders com maior numero de amostras por
+pixel para avaliar melhor a convergencia e comparar diferentes densidades de
+forma mais rigorosa.
+
+11. Frases possiveis para o relatorio
+-------------------------------------
+
+"A extensao implementada introduz um meio participante homogeneo no path
+tracer, permitindo simular a atenuacao e dispersao da luz no espaco entre as
+superficies da cena."
+
+"A distancia ate ao proximo evento volumetrico e amostrada a partir de uma
+distribuicao exponencial, o que corresponde ao modelo probabilistico de voo
+livre num meio de densidade constante."
+
+"Quando o evento volumetrico ocorre antes da intersecao com uma superficie, o
+algoritmo avalia a iluminacao direta no ponto de dispersao e continua o caminho
+numa nova direcao amostrada pela funcao de fase."
+
+"Os resultados demonstram que o aumento da densidade torna o efeito de nevoeiro
+mais visivel, mas tambem aumenta a variancia da estimativa Monte Carlo,
+exigindo um maior numero de amostras por pixel."
+
+12. Referencias uteis
+---------------------
+
+As densidades `0.15` e `0.45` foram escolhidas empiricamente para a escala da
+Cornell Box glTF usada neste projeto. Nao sao valores retirados diretamente de
+um artigo ou tutorial; servem para demonstrar visualmente a diferenca entre um
+meio mais leve e um meio mais denso. A escolha respeita a formula de
+transmitancia exponencial: para uma cena com profundidade aproximada de cinco
+unidades, densidades na ordem de `0.001` praticamente nao alteram a imagem,
+enquanto densidades na ordem de `0.1` ja produzem atenuacao observavel.
+
+Para fundamentar a teoria e a implementacao, podem ser usadas as seguintes
+referencias:
+
+- Pharr, Jakob e Humphreys, "Physically Based Rendering: From Theory to
+  Implementation", capitulo sobre Volume Scattering / Phase Functions:
+  https://pbr-book.org/4ed/Volume_Scattering/Phase_Functions
+
+- Pharr, Jakob e Humphreys, "Physically Based Rendering: From Theory to
+  Implementation", capitulo sobre Volume Scattering / Media:
+  https://pbr-book.org/4ed/Volume_Scattering/Media
+
+- Peter Shirley et al., "Ray Tracing: The Next Week", secao sobre volumes:
+  https://raytracing.github.io/books/RayTracingTheNextWeek.html#volumes
+
+- Scratchapixel, "Volume Rendering for Developers":
+  https://www.scratchapixel.com/lessons/3d-basic-rendering/volume-rendering-for-developers/intro-volume-rendering.html
+
+- Beer-Lambert law, para a ideia de atenuacao exponencial num meio:
+  https://en.wikipedia.org/wiki/Beer%E2%80%93Lambert_law

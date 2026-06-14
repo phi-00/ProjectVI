@@ -8,6 +8,7 @@
 
 #include "Camera/Camera.hpp"
 #include "Light/Light.hpp"
+#include "Medium/Medium.hpp"
 #include "Math/DiscreteDistribution.hpp"
 #include "Primitive/AccelerationStructures/GridAccelerationStructure.hpp"
 #include "Primitive/BoundingBox.hpp"
@@ -41,6 +42,12 @@ public:
 
   const Camera* GetCamera() const;
 
+  void SetGlobalMedium(ConstantDensityMedium medium);
+
+  const ConstantDensityMedium* GetGlobalMedium() const;
+
+  RGB Transmittance(float distance) const;
+
   const Primitive& GetPrimitive(int primitive_index) const;
 
   const Material& GetMaterial(int material_index) const;
@@ -58,6 +65,7 @@ private:
   std::vector<Material> m_Materials{};
   std::vector<std::unique_ptr<Light>> m_Lights{};
   std::optional<Camera> m_Camera{std::nullopt};
+  std::optional<ConstantDensityMedium> m_GlobalMedium{std::nullopt};
   LightSamplingDistribution m_LightSamplingDistribution{};
   GridAccelerationStructure m_AccelerationStructure{};
 };

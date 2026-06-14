@@ -9,6 +9,7 @@
 #include "Camera/Camera.hpp"
 #include "Image/FileImages.hpp"
 #include "Image/Image.hpp"
+#include "Medium/Medium.hpp"
 #include "Math/Vector.hpp"
 #include "Renderer/Renderer.hpp"
 #include "Scene/Scene.hpp"
@@ -27,13 +28,6 @@
 #include "Image/Denoiser.hpp"
 #endif
 
-#include <chrono>
-#include <filesystem>
-#include <iostream>
-#include <optional>
-#include <stdexcept>
-#include <string_view>
-
 using namespace VI;
 
 namespace
@@ -43,6 +37,10 @@ struct CommandLineOptions
 {
   std::optional<std::filesystem::path> ScenePath = std::nullopt;
   int SamplesPerPixel = 128;
+  int Width = 1280;
+  int Height = 720;
+  bool MediumDemo = false;
+  std::optional<float> MediumDensity = std::nullopt;
 };
 
 CommandLineOptions ParseCommandLine(int argc, char** argv)
@@ -75,6 +73,54 @@ CommandLineOptions ParseCommandLine(int argc, char** argv)
       continue;
     }
 
+    if (arg == "--width")
+    {
+      if (i + 1 >= argc)
+      {
+        throw std::invalid_argument("--width requires a positive value");
+      }
+      options.Width = std::stoi(argv[++i]);
+      if (options.Width <= 0)
+      {
+        throw std::invalid_argument("--width requires a positive value");
+      }
+      continue;
+    }
+
+    if (arg == "--height")
+    {
+      if (i + 1 >= argc)
+      {
+        throw std::invalid_argument("--height requires a positive value");
+      }
+      options.Height = std::stoi(argv[++i]);
+      if (options.Height <= 0)
+      {
+        throw std::invalid_argument("--height requires a positive value");
+      }
+      continue;
+    }
+
+    if (arg == "--medium-demo")
+    {
+      options.MediumDemo = true;
+      continue;
+    }
+
+    if (arg == "--medium-density")
+    {
+      if (i + 1 >= argc)
+      {
+        throw std::invalid_argument("--medium-density requires a positive value");
+      }
+      options.MediumDensity = std::stof(argv[++i]);
+      if (*options.MediumDensity <= 0.0f)
+      {
+        throw std::invalid_argument("--medium-density requires a positive value");
+      }
+      continue;
+    }
+
     throw std::invalid_argument("Unknown argument: " + std::string{arg});
   }
   return options;
@@ -87,8 +133,8 @@ int main(int argc, char** argv)
   auto begin = std::chrono::system_clock::now();
   const auto options = ParseCommandLine(argc, argv);
 
-  constexpr int w = 1280;
-  constexpr int h = 720;
+  const int w = options.Width;
+  const int h = options.Height;
 
   // /*
   // Path Tracing Cornell Box Camera
@@ -115,10 +161,20 @@ int main(int argc, char** argv)
   Renderer renderer;
   Image image{w, h};
 
-  if (options.ScenePath.has_value())
+  const bool use_default_medium_scene = options.MediumDemo || options.MediumDensity.has_value();
+  const std::optional<std::filesystem::path> scene_path =
+      options.ScenePath.has_value() ? options.ScenePath
+                                    : (use_default_medium_scene ? std::optional<std::filesystem::path>{"scenes/cornell-box.gltf"} : std::nullopt);
+
+  if (scene_path.has_value())
   {
     PathTracingShader path_tracing_shader{{0.0f, 0.0f, 0.0f}, DirectIlluminationMode::Importance};
-    Scene scene = CreateGltfScene(*options.ScenePath, w, h);
+    Scene scene = CreateGltfScene(*scene_path, w, h);
+    if (options.MediumDensity.has_value() || options.MediumDemo)
+    {
+      const float density = options.MediumDensity.value_or(0.15f);
+      scene.SetGlobalMedium(ConstantDensityMedium{density, RGB{0.82f, 0.9f, 1.0f}});
+    }
     scene.Build();
     const Camera& render_camera = scene.GetCamera() != nullptr ? *scene.GetCamera() : camera;
     image = renderer.Render(scene, render_camera, path_tracing_shader, options.SamplesPerPixel, true);

@@ -11,7 +11,7 @@ namespace VI
 class Image final
 {
 public:
-  constexpr Image(int width, int height) : m_Width{width}, m_Height{height}, m_Data{static_cast<size_t>(width * height)}
+  Image(int width, int height) : m_Width{width}, m_Height{height}, m_Data{static_cast<size_t>(width * height)}
   {
     if (m_Width <= 0 || m_Height <= 0)
     {
@@ -19,7 +19,7 @@ public:
     }
   }
 
-  constexpr Image(int width, int height, const float* color_ptr) : m_Width{width}, m_Height{height}, m_Data{static_cast<size_t>(width * height)}
+  Image(int width, int height, const float* color_ptr) : m_Width{width}, m_Height{height}, m_Data{static_cast<size_t>(width * height)}
   {
     SetFromBuffer(color_ptr);
   }

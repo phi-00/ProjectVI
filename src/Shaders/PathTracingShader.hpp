@@ -19,9 +19,13 @@ public:
   RGB Execute(const Ray& ray, const Scene& scene) const;
 
 private:
+  RGB TracePath(const Ray& ray, const Scene& scene, int depth = 0, bool allow_emissive = true) const;
+
   RGB DoExecute(const Ray& ray, const Scene& scene, const Intersection& intersection, int depth = 0, bool allow_emissive = true) const;
 
   RGB DirectIllumination(const Ray& ray, const Scene& scene, const Intersection& intersection) const;
+
+  RGB MediumDirectIllumination(const Ray& ray, const Scene& scene, const Point& position) const;
 
   RGB IndirectIllumination(const Ray& ray, const Scene& scene, const Intersection& intersection, const Material& material, int depth, bool allow_emissive [[maybe_unused]]) const;
 

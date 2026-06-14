@@ -1,0 +1,75 @@
+Notas de modulo - Grupo
+=======================
+
+Tema implementado
+-----------------
+
+Foi adicionada a componente de Participating Media com densidade constante.
+O meio e homogeneo, global na cena, e apenas e ativado quando se usa
+`--medium-demo`, `--medium-density` ou quando a cena chama
+`Scene::SetGlobalMedium`. A demo usa a Cornell Box ja existente no projeto:
+`scenes/cornell-box.gltf`.
+
+Ficheiros principais
+--------------------
+
+- `src/Medium/Medium.hpp`
+- `src/Medium/Medium.cpp`
+- `src/Medium/PhaseFunction.hpp`
+- `src/Medium/PhaseFunction.cpp`
+- `src/Shaders/PathTracingShader.cpp`
+- `src/Scene/Scene.hpp`
+- `src/Scene/Scene.cpp`
+- `src/Scene/GltfSceneBuilder.cpp`
+
+Ideia geral
+-----------
+
+Antes de uma raio atingir a superficie mais proxima, o path tracer amostra uma
+distancia de voo livre dentro do meio:
+
+`s = -log(1 - random) / density`
+
+Se `s` for menor do que a distancia ate a superficie, ocorre um evento de
+dispersao no volume. A direcao seguinte e amostrada com uma fase isotropica.
+Tambem foi adicionada atenuacao ao longo dos raios de sombra:
+
+`T(d) = exp(-density * d)`
+
+No importador glTF, primitivas com material emissivo passam a ser registadas
+como `AreaLight`, para que a luz do teto da Cornell Box do projeto seja usada
+pela amostragem direta.
+
+Como correr a demo
+------------------
+
+```powershell
+.\build\Debug\VI-RT.exe --medium-demo --spp 1
+```
+
+Para uma imagem menos ruidosa:
+
+```powershell
+.\build\Debug\VI-RT.exe --medium-demo --spp 8
+```
+
+Para mostrar um meio mais denso na mesma cena:
+
+```powershell
+.\build\Debug\VI-RT.exe --medium-demo --medium-density 0.45 --spp 8
+```
+
+Para comparar com a mesma cena sem meio participante:
+
+```powershell
+.\build\Debug\VI-RT.exe --scene scenes\cornell-box.gltf --spp 8
+```
+
+Notas para integracao
+---------------------
+
+- O rendering por defeito nao foi alterado.
+- Motion Blur pode ficar em `src/Motion/`.
+- Progressive Rendering pode ficar em `src/Renderer/ProgressiveRenderer.*`.
+- Se Motion Blur adicionar tempo ao `Ray`, os raios gerados pelo meio devem
+  preservar esse tempo.
