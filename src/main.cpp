@@ -19,6 +19,8 @@
 #include "Shaders/PathTracingShader.hpp"
 #include "Shaders/VeachShader.hpp"
 #include "Shaders/WhittedShader.hpp"
+#include "Window/RenderWindow.hpp"
+#include "Renderer/ProgressiveRenderer.hpp"
 
 /*  uncomment the folowiing line to perform
     post-rendering denoising (Intel OIDN)
@@ -41,6 +43,7 @@ struct CommandLineOptions
   int Height = 720;
   bool MediumDemo = false;
   std::optional<float> MediumDensity = std::nullopt;
+  bool Progressive = false;
 };
 
 CommandLineOptions ParseCommandLine(int argc, char** argv)
@@ -107,6 +110,12 @@ CommandLineOptions ParseCommandLine(int argc, char** argv)
       continue;
     }
 
+    if (arg == "--progressive")
+    {
+      options.Progressive = true;
+      continue;
+    }
+
     if (arg == "--medium-density")
     {
       if (i + 1 >= argc)
@@ -158,7 +167,6 @@ int main(int argc, char** argv)
 
   constexpr float fovHrad = fovH * 3.14f / 180.f;
   Camera camera{Eye, At, Up, w, h, fovHrad};
-  Renderer renderer;
   Image image{w, h};
 
   const bool use_default_medium_scene = options.MediumDemo || options.MediumDensity.has_value();
@@ -168,7 +176,6 @@ int main(int argc, char** argv)
 
   if (scene_path.has_value())
   {
-    PathTracingShader path_tracing_shader{{0.0f, 0.0f, 0.0f}, DirectIlluminationMode::Importance};
     Scene scene = CreateGltfScene(*scene_path, w, h);
     if (options.MediumDensity.has_value() || options.MediumDemo)
     {
@@ -177,14 +184,57 @@ int main(int argc, char** argv)
     }
     scene.Build();
     const Camera& render_camera = scene.GetCamera() != nullptr ? *scene.GetCamera() : camera;
-    image = renderer.Render(scene, render_camera, path_tracing_shader, options.SamplesPerPixel, true);
+
+    if (options.Progressive)
+    {
+      RenderWindow win{w, h, "VI Renderer"};
+      ProgressiveRenderer progressive;
+      progressive.Render(scene, render_camera, 0,
+        [&](const Image& frame, int pass, bool& keepGoing) {
+          win.PollEvents();
+          if (!win.IsOpen()) { keepGoing = false; return; }
+          win.Display(frame);
+          std::cout << "\rPass " << pass << std::flush;
+        }
+      );
+      std::cout << '\n';
+      if (const Image* last = progressive.GetLastImage())
+        image = *last;
+    }
+    else
+    {
+      PathTracingShader shader{{0.f, 0.f, 0.f}, DirectIlluminationMode::Importance};
+      Renderer renderer;
+      image = renderer.Render(scene, render_camera, shader, options.SamplesPerPixel, true);
+    }
   }
   else
   {
     VeachShader veach_shader{{0.0f, 0.0f, 0.0f}};
     Scene scene = CreateVeachScene();
     scene.Build();
-    image = renderer.Render(scene, camera, veach_shader, options.SamplesPerPixel, true);
+
+    if (options.Progressive)
+    {
+      RenderWindow win{w, h, "VI Renderer - Veach"};
+      ProgressiveRenderer progressive;
+      progressive.Render(scene, camera, 0,
+        [&](const Image& frame, int pass, bool& keepGoing) {
+          win.PollEvents();
+          if (!win.IsOpen()) { keepGoing = false; return; }
+          win.Display(frame);
+          std::cout << "\rPass " << pass << std::flush;
+        }
+      );
+      std::cout << '\n';
+      if (const Image* last = progressive.GetLastImage())
+        image = *last;
+    }
+    else
+    {
+      Renderer renderer;
+      image = renderer.Render(scene, camera, veach_shader, options.SamplesPerPixel, true);
+    }
   }
 
   ImagePPM::Save(image, "image.ppm");
