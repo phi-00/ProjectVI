@@ -175,7 +175,7 @@ RGB EstimateMediumDirectIllumination(const Ray& ray, const Scene& scene, const P
 
     const Vector wi_world = to_light / light_distance;
     const float phase = phase_function.Evaluate(-ray.Direction, wi_world);
-    const Ray shadow_ray = Ray::WithOffset(position, wi_world, wi_world);
+    const Ray shadow_ray = Ray::WithOffset(position, wi_world, wi_world, ray.Time);
     if (!scene.Visibility(shadow_ray, light_distance))
     {
       return RGB{0.0f};
@@ -222,7 +222,7 @@ RGB EstimateMediumDirectIllumination(const Ray& ray, const Scene& scene, const P
       return RGB{0.0f};
     }
 
-    const Ray shadow_ray = Ray::WithOffset(position, wi_world, wi_world);
+    const Ray shadow_ray = Ray::WithOffset(position, wi_world, wi_world, ray.Time);
     if (!scene.Visibility(shadow_ray, light_distance))
     {
       return RGB{0.0f};
@@ -284,7 +284,7 @@ RGB PathTracingShader::TracePath(const Ray& ray, const Scene& scene, int depth, 
           }
         }
 
-        const Ray scattered_ray = Ray::WithOffset(medium_interaction->Position, wi_world, wi_world);
+        const Ray scattered_ray = Ray::WithOffset(medium_interaction->Position, wi_world, wi_world, ray.Time);
         color += phase_value * TracePath(scattered_ray, scene, depth + 1, false) / (phase_pdf * continuation_probability);
       }
 
@@ -423,7 +423,7 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
 
   // follow up ray
   const Vector wi_world = glm::normalize(basis.LocalToWorld(wi_local));
-  const Ray scattered_ray = Ray::WithOffset(intersection.Position, wi_world, shading_normal);
+  const Ray scattered_ray = Ray::WithOffset(intersection.Position, wi_world, shading_normal, ray.Time);
 
   // Direct light sampling handles non-primary emitter contributions. Keep
   // primary emitter visibility, but avoid randomly accepting light hits based

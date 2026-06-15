@@ -16,7 +16,8 @@ bool Sphere::Intersect(const Ray& ray, Intersection& intersection) const
     return false;
   }
 
-  Vector oc = m_Center - ray.Origin;
+  Point current_center = m_Center.At(ray.Time);
+  Vector oc = current_center - ray.Origin;
 
   float h = glm::dot(ray.Direction, oc);
   float c = glm::dot(oc, oc) - (m_Radius * m_Radius);
@@ -34,7 +35,7 @@ bool Sphere::Intersect(const Ray& ray, Intersection& intersection) const
   }
 
   Point hit_point = ray.Origin + t * ray.Direction;
-  Vector normal = glm::normalize(hit_point - m_Center);
+  Vector normal = glm::normalize(hit_point - current_center);
 
   intersection = {
       .Position = hit_point,

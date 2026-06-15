@@ -15,7 +15,7 @@ public:
     float Width, Height;
   };
 
-  Camera(Point eye, Point at, Vector up, int width, int height, float fov_h, float defocus_angle = 0.f, float focus_dist = 1.);
+  Camera(Point eye, Point at, Vector up, int width, int height, float fov_h, float defocus_angle = 0.f, float focus_dist = 1., float time1 = 0.f, float time2 = 0.f);
 
   Ray GenerateRay(int x, int y, glm::vec2 jitter = {0.5f, 0.5f}) const;
 
@@ -33,5 +33,7 @@ private:
   Vector m_PixelDeltaU, m_PixelDeltaV;
   Vector m_DefocusDiskRight, m_DefocusDiskUp;
   float m_DefocusAngle;
+
+  float m_Time1, m_Time2;
 };
 } // namespace VI

@@ -11,7 +11,8 @@
 
 namespace VI
 {
-Camera::Camera(Point eye, Point at, Vector up, int width, int height, float fov_h, float defocus_angle, float focus_dist) : m_Eye{eye}, m_At{at}, m_Up{up}, m_Width{width}, m_Height{height}, m_DefocusAngle{defocus_angle}
+Camera::Camera(Point eye, Point at, Vector up, int width, int height, float fov_h, float defocus_angle, float focus_dist, float time1, float time2) : 
+  m_Eye{eye}, m_At{at}, m_Up{up}, m_Width{width}, m_Height{height}, m_DefocusAngle{defocus_angle}, m_Time1{time1}, m_Time2{time2}
 {
 
   Vector forward = glm::normalize(m_At - m_Eye);
@@ -55,7 +56,9 @@ Ray Camera::GenerateRay(int x, int y, glm::vec2 jitter) const
 
   Vector direction = glm::normalize(pixel_sample - origin);
 
-  return {.Origin = origin, .Direction = direction};
+  float time = Random::RandomFloat(m_Time1, m_Time2);
+
+  return {.Origin = origin, .Direction = direction, .Time = time};
 }
 
 } // namespace VI

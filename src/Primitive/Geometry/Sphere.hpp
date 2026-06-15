@@ -11,7 +11,10 @@ struct Intersection;
 class Sphere final
 {
 public:
-  Sphere(Point center, float radius) : m_Center(center), m_Radius(radius), m_BoundingBox(center - radius, center + radius) {}
+  // static sphere
+  Sphere(Point center, float radius) : m_Center(Ray{.Origin=center, .Direction={0,0,0}}), m_Radius(radius), m_BoundingBox(center - radius, center + radius) {}
+  // moving sphere
+  Sphere(Point center1, Point center2, float radius) : m_Center(Ray{.Origin=center1, .Direction=center2 - center1}), m_Radius(radius), m_BoundingBox(BoundingBox(center1 - radius, center1 + radius), BoundingBox(center2 - radius, center2 + radius)) {}
 
   bool Intersect(const Ray& r, Intersection& i) const;
   inline const BoundingBox& GetBoundingBox() const
@@ -20,7 +23,7 @@ public:
   }
 
 private:
-  Point m_Center;
+  Ray m_Center;
   float m_Radius;
   BoundingBox m_BoundingBox;
 };

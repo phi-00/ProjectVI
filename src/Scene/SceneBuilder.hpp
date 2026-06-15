@@ -6,6 +6,7 @@
 
 namespace VI
 {
+Scene CreateMotionBlurScene();
 Scene CreateCornellBox();
 Scene CreateImportanceSamplingCornellBox();
 Scene WhittedCornellBox();
