@@ -36,10 +36,10 @@ namespace
 struct CommandLineOptions
 {
   std::optional<std::filesystem::path> ScenePath = std::nullopt;
-  //int SamplesPerPixel = 128;
-  int SamplesPerPixel = 100;
-  //int Width = 1280;
-  int Width = 400;
+  int SamplesPerPixel = 128;
+  //int SamplesPerPixel = 100;
+  int Width = 1280;
+  //int Width = 400;
   int Height = 720;
   bool MediumDemo = false;
   std::optional<float> MediumDensity = std::nullopt;
