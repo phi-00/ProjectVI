@@ -18,7 +18,7 @@ struct Ray
   }
 
   // new constructor with time
-  static Ray WithOffset(const Point& origin, const Vector& direction, const Vector& normal, float time, float epsilon = EPSILON){
+  static Ray WithOffsetTime(const Point& origin, const Vector& direction, const Vector& normal, float time, float epsilon = EPSILON){
     return {.Origin = OffsetPoint(origin, normal, epsilon), .Direction = direction, .Time = time};
   }
 
