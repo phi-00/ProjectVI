@@ -42,6 +42,13 @@ Scene SphereScene()
 Scene CreateMotionBlurScene(){
     Scene scene;
 
+    const int light_mat = scene.AddMaterial({
+      .Name = "Light",
+      .EmissionColor = {0.6f, 0.7f, 1.0f},
+      .EmissionPower = 0.8f,
+    });
+    scene.AddLight(std::make_unique<AmbientLight>(light_mat));
+    
     // ground
     const int ground_material = scene.AddMaterial({.Name="Ground", .Albedo={0.5f,0.5f,0.5f}});
     scene.AddPrimitive(Sphere{Point{0.f, -1000.f, 0.f}, 1000.f}, ground_material);
@@ -49,7 +56,7 @@ Scene CreateMotionBlurScene(){
     // smaller spheres
     for(int a=-11; a<11; a++){
         for(int b=-11; b<11; b++){
-            const float rand_mat = Random::RandomFloat(0.f, 1.f);
+            const float rand_mat = Random::RandomFloat(0.0f, 1.0f);
             const Point sphere_center{a + 0.9f*Random::RandomFloat(0.0f,1.0f), 0.2f, b+0.9f*Random::RandomFloat(0.0f,1.0f)};
 
             if (glm::length(sphere_center - Point{4.0f, 0.2f, 0.0f}) > 0.9f){

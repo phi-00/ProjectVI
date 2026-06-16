@@ -170,7 +170,8 @@ int main(int argc, char** argv)
   //constexpr Vector MBUp = {0,1,0}
   constexpr float MBFovH = 20.f;
   constexpr float MBFovHrad = MBFovH * 3.14f/180.f;
-  Camera MBCamera{MBEye, MBAt, Up, w, h, MBFovHrad, 0.6f, 10.0f, 0.0f, 1.0f};
+  // teste de debug com defocus_angle = 0.0f (previamente 0.6f) (e focus_dist = 13.5f (de 10.0f))
+  Camera MBCamera{MBEye, MBAt, Up, w, h, MBFovHrad, 0.0f, 13.5f, 0.0f, 1.0f};
 
   constexpr float fovHrad = fovH * 3.14f / 180.f;
   Camera camera{Eye, At, Up, w, h, fovHrad};
@@ -196,7 +197,7 @@ int main(int argc, char** argv)
     image = renderer.Render(scene, render_camera, path_tracing_shader, options.SamplesPerPixel, true);
   } 
   else if(options.MotionBlurDemo){
-    PathTracingShader path_tracing_shader{{0.0f, 0.0f, 0.0f}, DirectIlluminationMode::Importance};
+    PathTracingShader path_tracing_shader{{0.5f, 0.5f, 1.0f}, DirectIlluminationMode::Importance};
     Scene scene = CreateMotionBlurScene();
     scene.Build();
     image = renderer.Render(scene, MBCamera, path_tracing_shader, options.SamplesPerPixel, true);
