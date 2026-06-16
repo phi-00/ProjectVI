@@ -42,6 +42,7 @@ FetchContent_MakeAvailable(oidn_prebuilt)
 list(APPEND CMAKE_PREFIX_PATH "${oidn_prebuilt_SOURCE_DIR}")
 
 find_package(OpenImageDenoise REQUIRED CONFIG)
+find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 
 add_executable(VI-RT src/main.cpp
     src/Log/Log.hpp
@@ -56,6 +57,10 @@ add_executable(VI-RT src/main.cpp
     # Renderer
     src/Renderer/Renderer.hpp
     src/Renderer/DummyRenderer.hpp
+    src/Renderer/ProgressiveRenderer.cpp
+
+    # Window
+    src/Window/RenderWindow.cpp
 
     # Image
     src/Image/Denoiser.hpp
@@ -129,10 +134,12 @@ add_executable(VI-RT src/main.cpp
     src/Shaders/VeachShader.hpp
     src/Shaders/VeachShader.cpp
 )
+
 target_include_directories(VI-RT PRIVATE src)
 target_include_directories(VI-RT SYSTEM PRIVATE external/tinygltf)
 target_precompile_headers(VI-RT PRIVATE src/vi_pch.h)
 
+target_link_libraries(VI-RT PRIVATE sfml-graphics sfml-window sfml-system)
 target_link_libraries(VI-RT PRIVATE glm::glm)
 target_link_libraries(VI-RT PRIVATE OpenImageDenoise)
 
