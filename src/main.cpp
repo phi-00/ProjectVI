@@ -197,7 +197,7 @@ int main(int argc, char** argv)
     image = renderer.Render(scene, render_camera, path_tracing_shader, options.SamplesPerPixel, true);
   } 
   else if(options.MotionBlurDemo){
-    PathTracingShader path_tracing_shader{{0.5f, 0.5f, 1.0f}, DirectIlluminationMode::Importance};
+    PathTracingShader path_tracing_shader{{0.6f, 0.7f, 1.0f}, DirectIlluminationMode::Importance};
     Scene scene = CreateMotionBlurScene();
     scene.Build();
     image = renderer.Render(scene, MBCamera, path_tracing_shader, options.SamplesPerPixel, true);

@@ -42,12 +42,29 @@ Scene SphereScene()
 Scene CreateMotionBlurScene(){
     Scene scene;
 
-    const int light_mat = scene.AddMaterial({
-      .Name = "Light",
-      .EmissionColor = {0.6f, 0.7f, 1.0f},
-      .EmissionPower = 0.8f,
+//    // Sky / ambient fill light (sem sombras, ilumina tudo de forma uniforme)
+//    const int sky_mat = scene.AddMaterial({
+//        .Name = "Sky",
+//        .EmissionColor = {0.5f, 0.7f, 1.0f},
+//        .EmissionPower = 1.0f,
+//    });
+//    scene.AddLight(std::make_unique<AmbientLight>(sky_mat));
+
+    // Area light acima da cena, para gerar sombras de contacto reais
+    const int area_light_mat = scene.AddMaterial({
+        .Name = "Area Light",
+        .EmissionColor = {1.0f, 1.0f, 1.0f},
+        .EmissionPower = 15.0f,
     });
-    scene.AddLight(std::make_unique<AmbientLight>(light_mat));
+    {
+        const float y = 15.0f; // bem acima da cena
+        scene.AddPrimitive(
+            Mesh{"Sun Light", std::vector<Triangle>{
+                Triangle{Point{-10.0f, y, -10.0f}, Point{10.0f, y, -10.0f}, Point{10.0f, y, 10.0f}, Vector{0.0f, -1.0f, 0.0f}},
+                Triangle{Point{-10.0f, y, -10.0f}, Point{10.0f, y, 10.0f}, Point{-10.0f, y, 10.0f}, Vector{0.0f, -1.0f, 0.0f}},
+            }},
+            area_light_mat);
+    }
     
     // ground
     const int ground_material = scene.AddMaterial({.Name="Ground", .Albedo={0.5f,0.5f,0.5f}});
