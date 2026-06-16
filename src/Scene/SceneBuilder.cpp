@@ -10,6 +10,7 @@
 
 #include "Light/Light.hpp"
 #include "Math/Vector.hpp"
+#include "Math/Random.hpp"
 #include "Primitive/Geometry/Mesh.hpp"
 #include "Primitive/Geometry/Sphere.hpp"
 #include "Primitive/Geometry/Triangle.hpp"
@@ -35,6 +36,74 @@ Scene SphereScene()
   scene.AddLight(std::make_unique<AmbientLight>(light_mat));
 
   return scene;
+}
+
+// added motion blur demo scene
+Scene CreateMotionBlurScene(){
+    Scene scene;
+
+//    // Sky / ambient fill light (sem sombras, ilumina tudo de forma uniforme)
+//    const int sky_mat = scene.AddMaterial({
+//        .Name = "Sky",
+//        .EmissionColor = {0.5f, 0.7f, 1.0f},
+//        .EmissionPower = 1.0f,
+//    });
+//    scene.AddLight(std::make_unique<AmbientLight>(sky_mat));
+
+    // Area light acima da cena, para gerar sombras de contacto reais
+    const int area_light_mat = scene.AddMaterial({
+        .Name = "Area Light",
+        .EmissionColor = {1.0f, 1.0f, 1.0f},
+        .EmissionPower = 15.0f,
+    });
+    {
+        const float y = 15.0f; // bem acima da cena
+        scene.AddPrimitive(
+            Mesh{"Sun Light", std::vector<Triangle>{
+                Triangle{Point{-10.0f, y, -10.0f}, Point{10.0f, y, -10.0f}, Point{10.0f, y, 10.0f}, Vector{0.0f, -1.0f, 0.0f}},
+                Triangle{Point{-10.0f, y, -10.0f}, Point{10.0f, y, 10.0f}, Point{-10.0f, y, 10.0f}, Vector{0.0f, -1.0f, 0.0f}},
+            }},
+            area_light_mat);
+    }
+    
+    // ground
+    const int ground_material = scene.AddMaterial({.Name="Ground", .Albedo={0.5f,0.5f,0.5f}});
+    scene.AddPrimitive(Sphere{Point{0.f, -1000.f, 0.f}, 1000.f}, ground_material);
+
+    // smaller spheres
+    for(int a=-11; a<11; a++){
+        for(int b=-11; b<11; b++){
+            const float rand_mat = Random::RandomFloat(0.0f, 1.0f);
+            const Point sphere_center{a + 0.9f*Random::RandomFloat(0.0f,1.0f), 0.2f, b+0.9f*Random::RandomFloat(0.0f,1.0f)};
+
+            if (glm::length(sphere_center - Point{4.0f, 0.2f, 0.0f}) > 0.9f){
+                if (rand_mat < 0.8f){
+                // Diffuse
+                const RGB albedo = RGB{Random::RandomFloat(0.0f, 1.0f), Random::RandomFloat(0.0f, 1.0f), Random::RandomFloat(0.0f, 1.0f)} *
+                                    RGB{Random::RandomFloat(0.0f, 1.0f), Random::RandomFloat(0.0f, 1.0f), Random::RandomFloat(0.0f, 1.0f)};
+                const int mat = scene.AddMaterial({.Name = "Diffuse Sphere", .Albedo = albedo});
+
+                const Point center2 = sphere_center + Vector{0.0f, Random::RandomFloat(0.0f, 0.5f), 0.0f};
+                scene.AddPrimitive(Sphere{sphere_center, center2, 0.2f}, mat);
+                }
+                else{
+                // Metal
+                const RGB albedo = {Random::RandomFloat(0.5f, 1.0f), Random::RandomFloat(0.5f, 1.0f), Random::RandomFloat(0.5f, 1.0f)};
+                const float fuzz = Random::RandomFloat(0.0f, 0.5f);
+                const int mat = scene.AddMaterial({.Name = "Metal Sphere", .Albedo = albedo, .Roughness = fuzz, .Metallic = 1.0f});
+                scene.AddPrimitive(Sphere{sphere_center, 0.2f}, mat);
+                }
+            }
+        }
+    }
+
+    const int diffuse_mat = scene.AddMaterial({.Name = "Diffuse Big", .Albedo = {0.4f, 0.2f, 0.1f}});
+    scene.AddPrimitive(Sphere{Point{-4.0f, 1.0f, 0.0f}, 1.0f}, diffuse_mat);
+
+    const int metal_mat = scene.AddMaterial({.Name = "Metal Big", .Albedo = {0.7f, 0.6f, 0.5f}, .Roughness = 0.0f, .Metallic = 1.0f});
+    scene.AddPrimitive(Sphere{Point{4.0f, 1.0f, 0.0f}, 1.0f}, metal_mat);
+
+    return scene;
 }
 
 Scene WhittedCornellBox()

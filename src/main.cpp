@@ -37,10 +37,13 @@ struct CommandLineOptions
 {
   std::optional<std::filesystem::path> ScenePath = std::nullopt;
   int SamplesPerPixel = 128;
+  //int SamplesPerPixel = 100;
   int Width = 1280;
+  //int Width = 400;
   int Height = 720;
   bool MediumDemo = false;
   std::optional<float> MediumDensity = std::nullopt;
+  bool MotionBlurDemo = false;
 };
 
 CommandLineOptions ParseCommandLine(int argc, char** argv)
@@ -121,6 +124,11 @@ CommandLineOptions ParseCommandLine(int argc, char** argv)
       continue;
     }
 
+    if(arg == "--motion-blur-demo"){
+      options.MotionBlurDemo = true;
+      continue;
+    }
+
     throw std::invalid_argument("Unknown argument: " + std::string{arg});
   }
   return options;
@@ -156,6 +164,15 @@ int main(int argc, char** argv)
   constexpr Vector Up = {0, 1, 0};
   constexpr float fovH = 45.f;
 
+  // Motion Blur Scene Camera Settings
+  constexpr Point MBEye = {13,2,3};
+  constexpr Point MBAt = {0,0,0};
+  //constexpr Vector MBUp = {0,1,0}
+  constexpr float MBFovH = 20.f;
+  constexpr float MBFovHrad = MBFovH * 3.14f/180.f;
+  // teste de debug com defocus_angle = 0.0f (previamente 0.6f) (e focus_dist = 13.5f (de 10.0f))
+  Camera MBCamera{MBEye, MBAt, Up, w, h, MBFovHrad, 0.0f, 13.5f, 0.0f, 1.0f};
+
   constexpr float fovHrad = fovH * 3.14f / 180.f;
   Camera camera{Eye, At, Up, w, h, fovHrad};
   Renderer renderer;
@@ -178,6 +195,13 @@ int main(int argc, char** argv)
     scene.Build();
     const Camera& render_camera = scene.GetCamera() != nullptr ? *scene.GetCamera() : camera;
     image = renderer.Render(scene, render_camera, path_tracing_shader, options.SamplesPerPixel, true);
+  } 
+  else if(options.MotionBlurDemo){
+    PathTracingShader path_tracing_shader{{0.6f, 0.7f, 1.0f}, DirectIlluminationMode::Importance};
+    Scene scene = CreateMotionBlurScene();
+    scene.Build();
+    image = renderer.Render(scene, MBCamera, path_tracing_shader, options.SamplesPerPixel, true);
+
   }
   else
   {

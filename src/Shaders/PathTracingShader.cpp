@@ -50,7 +50,7 @@ float PowerHeuristic(float pdf_a, float pdf_b)
 
 namespace VI
 {
-constexpr float MAX_DEPTH = 5;
+constexpr float MAX_DEPTH = 50;
 constexpr int RUSSIAN_ROULETTE_DEPTH = 2;
 constexpr float MAX_SAMPLE_RADIANCE = 10.0f;
 constexpr float MIN_AREA_LIGHT_DISTANCE_SQUARED = 1e-4f;
@@ -175,7 +175,7 @@ RGB EstimateMediumDirectIllumination(const Ray& ray, const Scene& scene, const P
 
     const Vector wi_world = to_light / light_distance;
     const float phase = phase_function.Evaluate(-ray.Direction, wi_world);
-    const Ray shadow_ray = Ray::WithOffset(position, wi_world, wi_world);
+    const Ray shadow_ray = Ray::WithOffsetTime(position, wi_world, wi_world, ray.Time);
     if (!scene.Visibility(shadow_ray, light_distance))
     {
       return RGB{0.0f};
@@ -222,7 +222,7 @@ RGB EstimateMediumDirectIllumination(const Ray& ray, const Scene& scene, const P
       return RGB{0.0f};
     }
 
-    const Ray shadow_ray = Ray::WithOffset(position, wi_world, wi_world);
+    const Ray shadow_ray = Ray::WithOffsetTime(position, wi_world, wi_world, ray.Time);
     if (!scene.Visibility(shadow_ray, light_distance))
     {
       return RGB{0.0f};
@@ -284,7 +284,7 @@ RGB PathTracingShader::TracePath(const Ray& ray, const Scene& scene, int depth, 
           }
         }
 
-        const Ray scattered_ray = Ray::WithOffset(medium_interaction->Position, wi_world, wi_world);
+        const Ray scattered_ray = Ray::WithOffsetTime(medium_interaction->Position, wi_world, wi_world, ray.Time);
         color += phase_value * TracePath(scattered_ray, scene, depth + 1, false) / (phase_pdf * continuation_probability);
       }
 
@@ -389,7 +389,9 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
   const float diffuse_probability = 1.0f - microfacet_probability;
 
   // stochastically select whether to sample the direction according to specular (microfacet) or diffuse (lambertian)
-  const bool sample_microfacet = Random::RandomFloat(0.f, 1.f) < microfacet_probability;
+  const float metallic = material.GetMetallic(intersection.TexCoord);
+  const bool sample_microfacet = (metallic > 0.9f) ? true :
+      Random::RandomFloat(0.f, 1.f) < microfacet_probability;
     
   // sample the direction according to the selected BRDF mode
   const Vector wi_local = microfacetBRDF.Sample(
@@ -423,7 +425,7 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
 
   // follow up ray
   const Vector wi_world = glm::normalize(basis.LocalToWorld(wi_local));
-  const Ray scattered_ray = Ray::WithOffset(intersection.Position, wi_world, shading_normal);
+  const Ray scattered_ray = Ray::WithOffsetTime(intersection.Position, wi_world, shading_normal, ray.Time);
 
   // Direct light sampling handles non-primary emitter contributions. Keep
   // primary emitter visibility, but avoid randomly accepting light hits based
