@@ -42,13 +42,6 @@ Scene SphereScene()
 Scene CreateMotionBlurScene(){
     Scene scene;
 
-    const int light_mat = scene.AddMaterial({
-      .Name = "Light",
-      .EmissionColor = {0.5f, 0.5f, 1.0f},
-      .EmissionPower = 4.0f,
-    });
-    scene.AddLight(std::make_unique<AmbientLight>(light_mat));
-
     // ground
     const int ground_material = scene.AddMaterial({.Name="Ground", .Albedo={0.5f,0.5f,0.5f}});
     scene.AddPrimitive(Sphere{Point{0.f, -1000.f, 0.f}, 1000.f}, ground_material);
